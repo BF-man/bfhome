@@ -22,10 +22,12 @@ Add github ssh keys.
   cd bfhome
 ```
 ```
-  sudo chown -R 1883:1883 ~/mosquitto
+  sudo touch /home/pi/projects/bfhome/mosquitto/config/mosquitto.passwd
+  sudo chown -R 1883:1883 /home/pi/projects/bfhome/mosquitto
+
   docker-compose up -d
 ```
-Set mosquitto password. First time only:
+Set mosquitto password:
 ```
   docker exec -it mosquitto sh
   mosquitto_passwd -c /mosquitto/config/mosquitto.passwd <username>
