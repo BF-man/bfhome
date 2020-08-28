@@ -1,0 +1,68 @@
+mqtt:
+  broker: localhost
+  port: 1883
+  client_id: home-assistant-1
+  keepalive: 60
+  username: homeassistant
+  password: password
+  protocol: 3.1
+
+switch 1:
+  - platform: mqtt
+    name: "MQTT Switch 1"
+    state_topic: "/house/switchConfirm1/"
+    command_topic: "/house/switch1/"
+    payload_on: "1"
+    payload_off: "0"
+    qos: 0
+    retain: true
+
+switch 2:
+  - platform: mqtt
+    name: "MQTT Switch 2"
+    state_topic: "/house/switchConfirm2/"
+    command_topic: "/house/switch2/"
+    payload_on: "1"
+    payload_off: "0"
+    qos: 0
+    retain: true
+
+switch 3:
+  - platform: mqtt
+    name: "MQTT Switch 3"
+    state_topic: "/house/switchConfirm3/"
+    command_topic: "/house/switch3/"
+    payload_on: "1"
+    payload_off: "0"
+    qos: 0
+    retain: true
+
+switch 4:
+  - platform: mqtt
+    name: "MQTT Switch 4"
+    state_topic: "/house/switchConfirm4/"
+    command_topic: "/house/switch4/"
+    payload_on: "1"
+    payload_off: "0"
+    qos: 0
+    retain: true
+
+switch 5:
+  - platform: mqtt
+    name: "MQTT Switch 5"
+    state_topic: "/house/switchConfirm5/"
+    command_topic: "/house/switch5/"
+    payload_on: "1"
+    payload_off: "0"
+    qos: 0
+    retain: true
+
+switch 6:
+  - platform: mqtt
+    name: "MQTT Switch 6"
+    state_topic: "/house/switchConfirm6/"
+    command_topic: "/house/switch6/"
+    payload_on: "1"
+    payload_off: "0"
+    qos: 0
+    retain: true
