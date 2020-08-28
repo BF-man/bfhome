@@ -4,7 +4,7 @@ services:
     container_name: home-assistant
     image: homeassistant/raspberrypi4-homeassistant:0114.4
     volumes:
-      - /PATH_TO_YOUR_CONFIG:/config
+      - /home/projects/bfhome/homeassistant:/config
     environment:
       - TZ=Europe/Moscow
     restart: always
@@ -14,7 +14,7 @@ services:
     container_name: mosquitto
     image: eclipse-mosquitto:1.6.12
     volumes:
-      - ./mosquitto_data/:/mosquitto/data/
+      - /home/projects/bfhome/mosquitto/:/mosquitto/
     ports:
       - "1883:1883"
       - "9001:9001"
