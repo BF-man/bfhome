@@ -24,9 +24,21 @@ services:
     container_name: nginx-proxy-manager
     image: jc21/nginx-proxy-manager:2.4.0
     volumes:
-      - /home/pi/projects/bfhome/nginx-proxy-manager:/config:rw
+      - ./home/pi/projects/bfhome/nginx-proxy-manager/config.json:/app/config/production.json
+      - ./home/pi/projects/bfhome/nginx-proxy-manager/data:/data
+      - ./home/pi/projects/bfhome/nginx-proxy-manager/letsencrypt:/etc/letsencrypt
     ports:
       - "8181:8181"
       - "8080:8080"
       - "4443:4443"
     restart: always
+
+  db:
+    image: 'jc21/mariadb-aria:10.4'
+    environment:
+      MYSQL_ROOT_PASSWORD: 'npm'
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'npm'
+      MYSQL_PASSWORD: 'npm'
+    volumes:
+      - ./data/mysql:/var/lib/mysql
