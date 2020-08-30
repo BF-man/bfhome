@@ -28,9 +28,9 @@ services:
       - /home/pi/projects/bfhome/nginx-proxy-manager/data:/data
       - /home/pi/projects/bfhome/nginx-proxy-manager/letsencrypt:/etc/letsencrypt
     ports:
-      - "8181:8181"
-      - "8080:8080"
-      - "4443:4443"
+      - "81:81"
+      - "80:80"
+      - "443:443"
     restart: always
 
   db:
