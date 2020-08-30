@@ -19,3 +19,14 @@ services:
       - "1883:1883"
       - "9001:9001"
     restart: always
+
+  nginx-proxy-manager:
+    container_name: nginx-proxy-manager
+    image: jc21/nginx-proxy-manager:2.4.0
+    volumes:
+      - /home/pi/projects/bfhome/nginx-proxy-manager:/config:rw
+    ports:
+      - "8181:8181"
+      - "8080:8080"
+      - "4443:4443"
+    restart: always
