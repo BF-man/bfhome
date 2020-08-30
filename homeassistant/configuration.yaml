@@ -20,6 +20,10 @@ google_assistant:
       name: switch 1
       expose: true
       room: bedroom
+    switch.mqtt_switch_2:
+      name: выключатель 2
+      expose: true
+      room: bedroom
 
 mqtt:
   broker: localhost
