@@ -25,6 +25,8 @@ Add github ssh keys.
   sudo touch /home/pi/projects/bfhome/mosquitto/config/mosquitto.passwd
   sudo chown -R 1883:1883 /home/pi/projects/bfhome/mosquitto
 
+  copy google assistant keys json to homeassistant/SERVICE_ACCOUNT.json
+
   docker-compose up -d
 ```
 Set mosquitto password:
@@ -40,6 +42,11 @@ docker-compose stop
 docker-compose rm -f
 docker-compose up -d
 ```
+
+## Ssl:
+nginx-proxy-manager - localhost:81 + duck dns.
+https://nginxproxymanager.com/#quick-setup
+https://dummylabs.com/ru/post/2020-01-27-the-easiest-way-to-https-home-assistant/
 
 
 

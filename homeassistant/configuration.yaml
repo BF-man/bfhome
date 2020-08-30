@@ -10,6 +10,23 @@ automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 
+google_assistant:
+  project_id: hsapp-a740b
+  service_account: !include SERVICE_ACCOUNT.JSON
+  report_state: true
+  exposed_domains:
+    - switch
+    - light
+  entity_config:
+    switch 1:
+      name: switch 1
+      aliases:
+        - BRIGHT_LIGHTS 1
+        - ENTRY_LIGHTS 1
+    light.living_room:
+      expose: false
+      room: LIVING_ROOM
+
 mqtt:
   broker: localhost
   port: 1883
