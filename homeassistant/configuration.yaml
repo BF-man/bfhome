@@ -18,14 +18,11 @@ google_assistant:
     - switch
     - light
   entity_config:
-    switch 1:
+    switch_1:
       name: switch 1
       aliases:
         - BRIGHT_LIGHTS 1
         - ENTRY_LIGHTS 1
-    light.living_room:
-      expose: false
-      room: LIVING_ROOM
 
 mqtt:
   broker: localhost
@@ -36,7 +33,7 @@ mqtt:
   password: password
   protocol: 3.1
 
-switch 1:
+switch_1:
   - platform: mqtt
     name: "MQTT Switch 1"
     state_topic: "/house/switchConfirm1/"
@@ -46,7 +43,7 @@ switch 1:
     qos: 0
     retain: true
 
-switch 2:
+switch_2:
   - platform: mqtt
     name: "MQTT Switch 2"
     state_topic: "/house/switchConfirm2/"
@@ -56,7 +53,7 @@ switch 2:
     qos: 0
     retain: true
 
-switch 3:
+switch_3:
   - platform: mqtt
     name: "MQTT Switch 3"
     state_topic: "/house/switchConfirm3/"
@@ -66,7 +63,7 @@ switch 3:
     qos: 0
     retain: true
 
-switch 4:
+switch_4:
   - platform: mqtt
     name: "MQTT Switch 4"
     state_topic: "/house/switchConfirm4/"
@@ -76,7 +73,7 @@ switch 4:
     qos: 0
     retain: true
 
-switch 5:
+switch_5:
   - platform: mqtt
     name: "MQTT Switch 5"
     state_topic: "/house/switchConfirm5/"
@@ -86,7 +83,7 @@ switch 5:
     qos: 0
     retain: true
 
-switch 6:
+switch_6:
   - platform: mqtt
     name: "MQTT Switch 6"
     state_topic: "/house/switchConfirm6/"
