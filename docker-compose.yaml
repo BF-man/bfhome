@@ -24,9 +24,9 @@ services:
     container_name: nginx-proxy-manager
     image: jc21/nginx-proxy-manager:2.4.0
     volumes:
-      - ./home/pi/projects/bfhome/nginx-proxy-manager/config.json:/app/config/production.json
-      - ./home/pi/projects/bfhome/nginx-proxy-manager/data:/data
-      - ./home/pi/projects/bfhome/nginx-proxy-manager/letsencrypt:/etc/letsencrypt
+      - /home/pi/projects/bfhome/nginx-proxy-manager/config.json:/app/config/production.json
+      - /home/pi/projects/bfhome/nginx-proxy-manager/data:/data
+      - /home/pi/projects/bfhome/nginx-proxy-manager/letsencrypt:/etc/letsencrypt
     ports:
       - "8181:8181"
       - "8080:8080"
