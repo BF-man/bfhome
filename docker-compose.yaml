@@ -34,11 +34,15 @@ services:
     restart: always
 
   db:
-    image: 'jc21/mariadb-aria:10.4'
+    container_name: mariadb
+    image: 'yobasystems/alpine-mariadb:10.4.13'
     environment:
       MYSQL_ROOT_PASSWORD: 'npm'
       MYSQL_DATABASE: 'npm'
       MYSQL_USER: 'npm'
       MYSQL_PASSWORD: 'npm'
     volumes:
-      - ./data/mysql:/var/lib/mysql
+      - home/pi/projects/bfhome/mariadb/mysql:/var/lib/mysql
+    ports:
+      - 3306:3306
+    restart: unless-stopped
