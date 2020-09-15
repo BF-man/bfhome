@@ -1,0 +1,1676 @@
+# https://community.home-assistant.io/t/docker-ha-addons-hassio-supervisor/198019/20
+# https://hastebin.com/akoyucezis.coffeescript
+
+################################################################################
+#   @author         :   Juan Perez
+#   @date           :   28/01/2018
+#   @package        :   Docker compose
+#   @description    :   docker-compose.yaml - runs the docker with below conditions
+#   @run command    :   start > docker-compose up -d stop > docker-compose stop, to start all > docker-compose -f /mnt/cache/appdata/docker-compose.yaml up -d
+#                       adding the --compatibility flag to convert certain swarm flats to non-swarm >> https://stackoverflow.com/questions/42345235/how-to-specify-memory-cpu-limit-in-docker-compose-version-3
+#   @password       :   passwords in .env file > #https://serversforhackers.com/c/div-variables-in-docker-compose
+################################################################################
+version: '3.8' #'2.4'
+services:
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  portainer:
+    container_name: portainer
+    image: portainer/portainer
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/portainer/data:/data
+    - /var/run/docker.sock:/var/run/docker.sock #    - /etc/letsencrypt:/certs:ro #    command: --ssl --sslcert /certs/live/yourdomain.com/fullchain.pem --sslkey /certs/live/yourdomain.com/privkey.pem
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "9100:9000"
+    # mem_limit: 512m #1G
+    # mem_reservation: 256m
+    # cpuset: 1,13
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+#sudo docker run -tid --name="portainer" --restart=unless-stopped -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock -v /mnt/cache/appdata/portainer/data:/data -v /etc/localtime:/etc/localtime:ro -v /etc/letsencrypt:/certs portainer/portainer --ssl --sslcert /certs/live/yourdomain.com/fullchain.pem --sslkey /certs/live/yourdomain.com/privkey.pem
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  mqtt:
+    container_name: mqtt
+    image: eclipse-mosquitto
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/mosquitto/config:/mosquitto/config
+    - /mnt/cache/appdata/mosquitto/log:/mosquitto/log
+    - /mnt/cache/appdata/mosquitto/data:/mosquitto/data
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - PGID=100
+    - PUID=99
+    ports:
+    - "1883:1883"
+    - "9001:9001"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+    # logging:
+    #   options:
+    #     max-size: "1m"
+    #     max-file: "10"
+#sudo docker run --name mqtt --restart=unless-stopped -tid -p 1883:1883 -p 9001:9001 -v /mnt/cache/appdata/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf -v /mnt/cache/appdata/mosquitto/config/passwd:/mosquitto/config/passwd -v /mnt/cache/appdata/mosquitto/log:/mosquitto/log -v /mnt/cache/appdata/mosquitto/data:/mosquitto/data -v /etc/localtime:/etc/localtime:ro eclipse-mosquitto
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  motioneye: #https://github.com/ccrisan/motioneye/wiki/Install-In-Docker # https://community.home-assistant.io/t/some-of-the-new-docker-containers-i-am-using/56124/6
+    container_name: motioneye
+    image: ccrisan/motioneye:master-amd64 # dev-amd64
+    hostname: motioneye
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/motioneye/config:/etc/motioneye
+    - /mnt/user/media/appdata/motioneye:/var/lib/motioneye
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - PGID=100
+    - PUID=99
+    ports:
+    - "7999:7999" #api interface port
+    - "8765:8765" #web interface port
+    - "8701-8705:8081-8085" #port per camera, more can be added subsequently
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #     reservations:
+    #       memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://192.168.1.100:8765"] #"CMD", "curl", "-sI", "http://192.168.1.100:8765"]
+      interval: 30s
+      timeout: 1s
+      retries: 24
+#sudo docker run --name=zoneminder --restart=unless-stopped --shm-size=512m -v /mnt/cache/appdata/zoneminder/localconfigpath:/config:rw -v /mnt/cache/appdata/zoneminder/localcachepath:/var/cache/zoneminder -v /etc/localtime:/etc/localtime:ro -e TMZ=Asia/Dubai -p 80:80 -p 443:443 ldocky/zoneminder
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  cloud9: # https://hub.docker.com/r/sapk/cloud9/
+    container_name: cloud9
+    image: linuxserver/cloud9
+    restart: unless-stopped
+    hostname: UNRAID
+    privileged: true
+    volumes:
+    - /mnt/cache:/code
+    - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    - GITURL=https://github.com/linuxserver/docker-cloud9.git
+    ports:
+    - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+#sudo docker run --name configurator --restart=unless-stopped -p 3218:3218 -tid -v /mnt/cache/appdata/homeassistant:/homeassistant -v /mnt/cache/appdata/configurator:/config -v /etc/letsencrypt:/certs causticlab/hass-configurator-docker:x86_64-0.2.6
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  appdaemon:
+    container_name: appdaemon
+    image: acockburn/appdaemon #:4.0.1
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/homeassistant/appdaemon:/conf #- /mnt/cache/appdata/appdaemon:/conf
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - HA_URL=http://192.168.1.100:8123
+    - TOKEN=<longlived token>
+    - DASH_URL=http://192.168.1.100:5050
+    - PGID=100
+    - PUID=99
+    ports:
+    - "5050:5050"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #     reservations:
+    #       memory: 512M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+#sudo docker run -tid --name="appdaemon" --restart=unless-stopped -p 5050:5050 -v /mnt/cache/appdata/appdaemon:/conf -v /etc/localtime:/etc/localtime:ro -v /etc/letsencrypt:/certs acockburn/appdaemon:latest
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  hadockermon:
+    container_name: hadockermon
+    image: philhawthorne/ha-dockermon
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - PGID=100
+    - PUID=99
+    ports:
+    - "8126:8126"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+#sudo docker run -tid --name=ha-dockermon --restart=unless-stopped -p 8126:8126 -v /var/run/docker.sock:/var/run/docker.sock philhawthorne/ha-dockermon
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  glances: #https://nicolargo.github.io/glances/
+    container_name: glances
+    image: nicolargo/glances:latest #:stable
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/glances/conf/glances.conf:/glances/conf/glances.conf
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - GLANCES_OPT= --webserver #--export influxdb --export mqtt
+    - PGID=100
+    - PUID=99
+    pid: "host"
+    ports:
+    - "61208-61209:61208-61209"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    #     reservations:
+    #       memory: 256M
+    stdin_open: true
+    tty: true
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+#sudo docker run -tid --name=glances --restart=unless-stopped -p 61208-61209:61208-61209 -e GLANCES_OPT="--export influxdb" -v /var/run/docker.sock:/var/run/docker.sock:ro -v /mnt/cache/appdata/glances/glances.conf:/glances/conf/glances.conf --pid host docker.io/nicolargo/glances
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - WATCHTOWER_NOTIFICATIONS=gotify
+    - WATCHTOWER_NOTIFICATION_GOTIFY_URL=https://goti.yourdomain.com
+    - WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN=token
+    - PGID=100
+    - PUID=99
+    command: --debug --label-enable --cleanup --interval 300
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+#sudo docker run -tid --name=watchtower --restart=unless-stopped -v /var/run/docker.sock:/var/run/docker.sock v2tec/watchtower zoneminder mqtt portainer appdaemon  configurator ha-dockermon glances mysql
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  postgres:
+    container_name: postgres
+    image: postgres
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: host
+    volumes:
+    - /mnt/user/media/appdata/postgres:/var/lib/postgresql/data
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - POSTGRES_ROOT_PASSWORD=${MYPASSWORD}
+    - POSTGRES_DB=homeassistant
+    - POSTGRES_USER=hass
+    - POSTGRES_PASSWORD=${MYPASSWORD}
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+#sudo docker run -tid --name=mariadb --restart=unless-stopped --net=host -v /mnt/cache/appdata/mariadb/datadir:/var/lib/mysql –v /etc/localtime:/etc/localtime:ro -e 'MYSQL_ROOT_PASSWORD=${MYPASSWORD}' -e 'MYSQL_DATABASE=homeassistant' -e 'MYSQL_USER=hass' -e 'MYSQL_PASSWORD=${MYPASSWORD}' -e 'MYSQL_LOG_CONSOLE=true' mariadb:latest
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/grafana:/var/lib/grafana
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - PGID=100
+    - PUID=99
+    # depends_on:
+    # - influxdb
+    ports:
+    - "3000:3000"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+  # influxdb:                                                                           ################################################################################
+  #   container_name: influxdb                                                          #Create a new database for Home Assistant &Telegraf then exit the Influx client#
+  #   image: influxdb                                                                   #sudo docker exec -it influxdb influx                                          #
+  #   restart: unless-stopped                                                           #CREATE DATABASE home_assistant                                                #
+  #   volumes:                                                                          #CREATE DATABASE telegraf                                                      #
+  #   - /home/juan/influx:/var/lib/influxdb                                             #CREATE DATABASE glances                                                       #
+  #   # - /home/juan/influx/conf/influxdb.conf:/etc/influxdb/influxdb.conf:ro           #SHOW DATABASES                                                                #
+  #   - /etc/localtime:/etc/localtime:ro                                                #exit                                                                          #
+  #   environment:                                                                      ################################################################################
+  #   - INFLUXDB_DB=home_assistant # add glances manually, telegraf added automatically
+  #   ports:
+  #   - "8086:8086"
+  #   - "8083:8083"
+  #   labels:
+  #   - "com.centurylinklabs.watchtower.enable=true"
+#sudo docker run -tid --name=influx-grafana --restart=unless-stopped -p 3003:3003 -p 3004:8083 -p 8086:8086 -p 22022:22 -v /mnt/cache/appdata/glances/influxdb:/var/lib/influxdb -v /mnt/cache/appdata/glances/grafana:/var/lib/grafana -v /etc/localtime:/etc/localtime:ro ���v /etc/letsencrypt:/certs:ro -e VIRTUAL_HOST=yourdomain.com -e VIRTUAL_PROTO=https -e VIRTUAL_PORT=3003 –e LETSENCRYPT_HOST=https://yourdomain.com -e LETSENCRYPT_EMAIL=user@yahoo.com -e GF_SERVER_CERT_FILE=/certs/live/yourdomain.com/fullchain.pem -e GF_SERVER_CERT_KEY=/certs/live/yourdomain.com/privkey.pem -e GF_SERVER_PROTOCOL=https -e GF_SERVER_DOMAIN=yourdomain.com -e GF_SECURITY_ADMIN_USER=admin -e GF_SECURITY_ADMIN_PASSWORD=${MYPASSWORD} philhawthorne/docker-influxdb-grafana:latest
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  tasmoadmin: #https://hub.docker.com/r/raymondmm/tasmoadmin/tags/
+    container_name: tasmoadmin
+    image: raymondmm/tasmoadmin #:v1.6.0
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/tasmoadmin:/data:rw
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - APACHE_SERVER_NAME=tasmo.hass
+    ports:
+    - "1280:80"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+#sudo docker run -it -v /mnt/cache/appdata/sonweb:/data -p 880:80 -e APACHE_SERVER_NAME=tasmo.hass --name tasmoadmin raymondmm/sonweb
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  filebrowser:
+    container_name: filebrowser
+    image: filebrowser/filebrowser:v2.0.16
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/filebrowser/filebrowser.db:/database.db
+    - /mnt/cache/appdata/filebrowser/filebrowser.json:/.filebrowser.json
+    - /:/srv
+    environment:
+    - PGID=100
+    - PUID=99
+    ports:
+    - "1580:80"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #     reservations:
+    #       memory: 512M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  nextcloud: #https://github.com/nextcloud/docker
+    container_name: nextcloud
+    image: nextcloud:stable-apache #18.0.3-apache
+    restart: unless-stopped
+    hostname: UNRAID
+    privileged: true
+    volumes:
+    - /mnt/cache/appdata/nextcloud/config:/var/www/html/config #permissions sshd:sshd (640) - rest sshd:root (755)
+    - /mnt/cache/appdata/nextcloud/html:/var/www/html
+    - /mnt/cache/appdata/nextcloud/apps:/var/www/html/custom_apps
+    - /mnt/user/media/nextcloud:/var/www/html/data
+    - /mnt/user/media/virtmachines/juan_documents/cloud:/media #local mount gdrive/odrive https://docs.nextcloud.com/server/13/admin_manual/configuration_files/external_storage/local.html
+    # - /mnt/user/backup/cloud:/media
+    environment:
+    - PGID=100 #
+    - PUID=99 #33
+    ports:
+    - "8090:80"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #     reservations:
+    #       memory: 512M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=false"
+  onlyoffice: #https://api.onlyoffice.com/editors/owncloud - https://hub.docker.com/r/onlyoffice/documentserver/
+    container_name: onlyoffice
+    image: onlyoffice/documentserver
+    restart: unless-stopped
+    hostname: UNRAID
+    privileged: true
+    volumes:
+    - /mnt/cache/appdata/onlyoffice/config:/var/log/onlyoffice
+    - /mnt/cache/appdata/onlyoffice/data:/var/www/onlyoffice/Data
+    ports:
+    - "1680:80"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    stdin_open: true
+    tty: true
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# sudo docker run -i -t -d --name="onlyoffice" --restart=unless-stopped -v /srv/docker/onlyoffice:/var/log/onlyoffice -v /srv/docker/onlyoffice:/var/www/onlyoffice/Data -p 1680:80 onlyoffice/documentserver
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  plex:
+    container_name: plex
+    image: linuxserver/plex
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: host
+    volumes:
+    - /mnt/cache/appdata/plex:/config
+    - /mnt/user/media:/data
+    - /tmp/plex:/transcode #/mnt/cache/appdata/plex/transcode:/transcode
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    - VERSION=latest
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 2G
+    #     reservations:
+    #       memory: 1G
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# webtools - https://github.com/ukdtom/WebTools.bundle/wiki/Install
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  telegraf: #https://hub.docker.com/r/library/telegraf/
+    container_name: telegraf
+    image: telegraf:latest #1.10.4
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: host
+    volumes:
+    - /mnt/cache/appdata/telegraf:/etc/telegraf
+    - /var/run/docker.sock:/var/run/docker.sock
+    - /etc/localtime:/etc/localtime:ro
+    - /proc:/host/proc:ro
+    environment:
+    - HOST_PROC=/host/proc
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  hddtemp: #https://github.com/Drewster727/hddtemp-docker
+    container_name: hddtemp
+    image: drewster727/hddtemp-docker
+    restart: unless-stopped
+    hostname: UNRAID
+    privileged: true
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - /dev:/dev
+    environment:
+    - HDDTEMP_ARGS=-q -d -F /dev/sd* #/dev/nvme0*
+    - TZ=Asia/Dubai
+    networks:
+      mynet:
+        ipv4_address: 172.10.0.20    # set up static ip to use with telegraf
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    cap_add:
+    - NET_ADMIN
+    dns:
+    - 127.0.0.1
+    - 1.1.1.1
+    volumes:
+    - /mnt/cache/appdata/pihole:/etc/pihole
+    - /mnt/cache/appdata/pihole/dnsmasq:/etc/dnsmasq.d
+    environment:
+    - ServerIP=192.168.1.150
+    - WEBPASSWORD=${MYPASSWORD}
+    - TZ=Asia/Dubai
+    - DNS1=1.1.1.1
+    - DNS2=8.8.8.8
+    ports:
+    - "53:53/tcp"
+    - "53:53/udp"
+    - "67:67/udp"
+    - "80:80"
+    - "443:443"
+    networks:
+      myvlan:
+        ipv4_address: 192.168.1.150    # set up for pihole
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  transmission:
+    container_name: transmission
+    image: linuxserver/transmission
+    restart: unless-stopped
+    # hostname: UNRAID > not possible with network_mode
+    network_mode: "service:pia"
+    volumes:
+    - /mnt/cache/appdata/transmission:/config
+    - /mnt/cache/appdata/transmission/watch:/watch
+    - /mnt/user/downloads:/downloads
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    # ports: # mapping port is dissabled if using network_mode" service:pia  >> odl conf - mapping port has to go through socat, piercing vpn
+    # - "9091:9091"
+    # - "51413:51413"
+    # - "51413:51413/udp"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #     reservations:
+    #       memory: 512M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+
+    # transmission-socat:
+    #   container_name: transmission-socat
+    #   image: alpine/socat
+    #   restart: unless-stopped
+    #   depends_on:
+    #   - pia
+    #   - transmission
+    #   ports:
+    #   - 10005:10005/tcp  # external port for whoami container access - https://github.com/qdm12/private-internet-access-docker/issues/21
+    #   command: tcp-listen:10005,fork,reuseaddr tcp-connect:pia:9091
+    #   labels:
+    #   - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  unifi:
+    container_name: unifi
+    image: linuxserver/unifi-controller:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/unifi:/config
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "3478:3478/udp"
+    - "10001:10001/udp"
+    - "8080:8080"
+    - "8081:8081"
+    - "8443:8443"
+    - "8843:8843"
+    - "8880:8880"
+    - "6789:6789"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  happybubbles: #https://github.com/happy-bubbles/presence - cd /mnt/cache/appdata/happybubbles/docker && ./build.sh
+    container_name: happybubbles #    image: happy-bubbles/happy-bubbles:latest
+    build:
+      context: .
+      dockerfile: /mnt/cache/appdata/happybubbles/docker/Dockerfile
+    restart: unless-stopped
+    hostname: UNRAID
+    ports:
+    - "5555:5555"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  krusader: #https://hub.docker.com/r/djaydev/krusader
+    container_name: krusader
+    image: djaydev/krusader
+    restart: unless-stopped
+    hostname: UNRAID
+    privileged: true
+    volumes:
+    - /mnt/cache/appdata/krusader:/config
+    - /:/unraid
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - GROUP_ID=0
+    - USER_ID=0
+    - TZ=Asia/Dubai
+    - UMASK=000
+    - DISPLAY_WIDTH=2600 #1280
+    - DISPLAY_HEIGHT=900 #768
+    - VNC_PASSWORD=
+    ports:
+    - "5801:5800"
+    - "6900:5900"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+
+    # krusader:
+    #   container_name: krusader
+    #   image: binhex/arch-krusader
+    #   restart: unless-stopped
+    #   privileged: true
+    #   volumes:
+    #   - /mnt/cache/appdata/krusader:/config
+    #   - /:/unraid
+    #   - /etc/localtime:/etc/localtime:ro
+    #   environment:
+    #   - PGID=0
+    #   - PUID=0
+    #   - TZ=Asia/Dubai
+    #   - TEMP_FOLDER=/config/krusader/tmp
+    #   - WEBPAGE_TITLE="TOWER" #    - VNC_PASSWORD=""
+    #   - UMASK=000
+    #   ports:
+    #   - "6080:6080"
+    #   - "6900:5900"
+    #   mem_limit: 512m #1G
+    #   mem_reservation: 256m
+    #   labels:
+    #   - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  homeassistant:
+    container_name: homeassistant
+    image: homeassistant/home-assistant:0.110.1 #latest #${tag} #https://serversforhackers.com/c/div-variables-in-docker-compose
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: host
+    privileged: true
+    volumes:
+    - /mnt/cache/appdata/homeassistant:/config
+    - /mnt/cache/appdata/homeassistant/keys/ssh:/root/.ssh
+    - /etc/localtime:/etc/localtime:ro
+    - /var/local/emhttp:/emhttp # mounted unraid folder to monitor status https://community.home-assistant.io/t/unraid-monitoring/53775/4
+    - /var/run/docker.sock:/var/run/docker.sock # mounted to support docker monitor https://github.com/Sanderhuisman/docker_monitor
+    - /mnt/cache/appdata/fail2ban/log/fail2ban.log:/config/sensor/fail2ban.log #/mnt/cache/appdata/letsencrypt/log/fail2ban/fail2ban.log:/config/sensor/fail2ban.log # https://www.home-assistant.io/integrations/fail2ban/
+    environment:
+    - PGID=100
+    - PUID=99
+    # devices:
+    # - /dev/ttyACM0:/dev/ttyACM0 #    - /dev/tty1:/dev/tty1
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 256M
+    depends_on:
+    # - influxdb
+    - mqtt
+    - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://192.168.1.100:8123"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # homeassistant_test:
+  #   container_name: homeassistant_test
+  #   image: homeassistant/home-assistant:latest #${tag} #https://serversforhackers.com/c/div-variables-in-docker-compose
+  #   restart: unless-stopped
+  #   network_mode: host
+  #   privileged: true
+  #   volumes:
+  #   - /mnt/cache/appdata/homeassistant_test:/config
+  #   - /mnt/cache/appdata/homeassistant_test/keys/ssh:/root/.ssh
+  #   - /etc/localtime:/etc/localtime:ro
+  #   # - /var/local/emhttp:/emhttp # mounted unraid folder to monitor status https://community.home-assistant.io/t/unraid-monitoring/53775/4
+  #   # - /var/run/docker.sock:/var/run/docker.sock # mounted to support docker monitor https://github.com/Sanderhuisman/docker_monitor
+  #   # - /mnt/cache/appdata/letsencrypt/log/fail2ban/fail2ban.log:/config/sensor/fail2ban.log # https://www.home-assistant.io/integrations/fail2ban/
+  #   environment:
+  #   - PGID=100
+  #   - PUID=99
+#sudo docker run -tid --name="homeassistant" --restart=unless-stopped --net=host -v /mnt/cache/appdata/homeassistant:/config -v /etc/localtime:/etc/localtime:ro -v /etc/letsencrypt:/certs -v /mnt/cache/appdata/sshkey/.ssh:/root/.ssh --net=host --privileged --device /dev/ttyACM0:/dev/ttyACM0 --device /dev/tty1:/dev/tty1 homeassistant/home-assistant
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  airsonic:
+    container_name: airsonic
+    image: linuxserver/airsonic
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/airsonic:/config
+    - /mnt/user/media/music:/music #media
+    - /mnt/user/media/playlists:/playlists
+    - /mnt/user/media/podcasts:/podcasts
+    # - /path/to/other media:/media #optional
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    - JAVA_OPTS=-Xms256m -Xmx512m
+    - CONTEXT_PATH=
+    # - UMASK=000
+    ports:
+    - "4050:4040"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  youtube: #https://github.com/XiovV/go-auto-yt
+    container_name: youtube
+    image:  xiovv/go-auto-yt:stable
+    restart: unless-stopped
+    # network_mode: "service:pia"
+    volumes:
+    - /mnt/cache/appdata/youtube:/app/config
+    - /mnt/user/downloads/complete:/app/downloads
+    environment:
+    - PGID=100
+    - PUID=99
+    - UMASK_SET=022
+    - TZ=Asia/Dubai
+    ports:
+    - "2180:8080"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+
+  # youtube:
+  #   container_name: youtube
+  #   image:  tzahi12345/youtubedl-material
+  #   restart: unless-stopped
+  #   # network_mode: "service:pia"
+  #   volumes:
+  #   - /mnt/cache/appdata/youtube:/app/config
+  #   - /mnt/user/downloads/complete:/app
+  #   environment:
+  #   - PGID=100
+  #   - PUID=99
+  #   - TZ=Asia/Dubai
+  #   - YTDL_TITLE_TOP=YOUTUBE DL
+  #   - YTDL_ALLOW_ADVANCED_DOWNLOAD=TRUE
+  #   ports:
+  #   - 17442:17442
+  #   labels:
+  #   - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  pia: #https://github.com/qdm12/private-internet-access-docker
+    container_name: pia
+    image:  qmcgaw/private-internet-access:latest #old #v1
+    restart: unless-stopped
+    hostname: UNRAID
+    cap_add:
+    - NET_ADMIN
+    devices:
+    - /dev/net/tun
+    env_file:
+    - "./.pia.env"
+    # environment:
+    # - USER=user
+    # - PASSWORD=#${PIAPASSWORD} # /run/secrets/pia_password
+    # - PIA_ENCRYPTION=strong
+    # - PROTOCOL=udp
+    # - REGION=DE Frankfurt #UAE
+    # - NONROOT=no
+    # - DOT=on
+    # # - DOT_VERBOSITY=3
+    # # - DOT_VERBOSITY_DETAILS=1
+    # - BLOCK_MALICIOUS=on
+    # - BLOCK_SURVEILLANCE=off
+    # - UNBLOCK=
+    # - FIREWALL=on
+    # - EXTRA_SUBNETS=192.168.1.0/24 # added for proxy connections
+    # - TINYPROXY=on
+    # - TINYPROXY_LOG=Critical
+    # - TINYPROXY_PORT=8888
+    # - TINYPROXY_USER=
+    # - TINYPROXY_PASSWORD=
+    # - SHADOWSOCKS=off
+    # - SHADOWSOCKS_LOG=on
+    # - SHADOWSOCKS_PORT=8388
+    # - SHADOWSOCKS_PASSWORD=1234
+    # - PGID=100
+    # - PUID=99
+    # - TZ=Asia/Dubai
+    ports:
+    - "9091:9091" #transmission web ui
+    - "51413:51413" #transmission access
+    - "51413:51413/udp" #transmission access
+    # - "5800:5800" #firefox web ui
+    # - "2180:8080" # youtube web ui
+    # - "8444:443" # meet.jitsi
+    # - "8001:80" #meet.jitsi
+    # - "10000:10000/udp" #video.meet.jitsi
+    # - "4443:4443" #video.meet.jitsi
+    - "8888:8888/tcp"
+    - "8388:8388/tcp"
+    - "8388:8388/udp"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  bitwarden: #https://hub.docker.com/r/mprasil/bitwarden/
+    container_name: bitwarden
+    image: bitwardenrs/server
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/bitwarden:/data/
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "2280:80"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  deepstack: # https://github.com/robmarkcole/HASS-Deepstack
+    container_name: deepstack
+    image: deepquestai/deepstack:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/deepstack:/datastore
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    # - API-KEY=${MYPASSWORD}
+    - VISION-DETECTION=True
+    - VISION-FACE=True
+    - PGID=100
+    - PUID=99
+    ports:
+    - "5000:5000"
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  adb: # https://hub.docker.com/r/sorccu/adb/ - https://community.home-assistant.io/t/help-for-adb-controll-of-nvidia-shield-with-synology-device/54091/5
+    container_name: adb
+    image: sorccu/adb:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    privileged: true
+    volumes:
+    - /mnt/cache/appdata/adb/platform-tools:/opt/platform-tools
+    - /mnt/cache/appdata/adb/android:/root/.android
+    - /dev/bus/usb:/dev/bus/usb #
+    # command: adb connect 192.168.1.10:5555 #, adb connect 192.168.1.25:5555 #adb -a -P 5037 server nodeamon
+    environment:
+    - PGID=100
+    - PUID=99
+    ports:
+    - "5037:5037"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# for set up update platform-tools (update-platform-tools.sh) pull from container and make permanent, also add/permanent adb key.
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  gotify: # https://webworxshop.com/self-hosted-push-notifications-with-gotify-and-home-assistant/
+    container_name: gotify
+    image: gotify/server:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/gotify:/app/data
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - PGID=100
+    - PUID=99
+    ports:
+    - "2380:80"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  monitor: # https://github.com/Monitorr/Monitorr/wiki/02-Config:--Docker
+    container_name: monitor
+    image: monitorr/monitorr:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/monitor:/app
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "2480:80"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  odrive: #https://github.com/oznu/docker-onedrive-sync # https://github.com/skilion/onedrive
+    container_name: odrive
+    image: oznu/onedrive
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/onedrive:/config
+    - /mnt/user/media/virtmachines/juan_documents/cloud/odrive:/documents
+    environment:
+    - TZ=Asia/Dubai
+    - PGID=100 #33
+    - PUID=99 #33
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+#docker run -it --name=odrive -e PUID=99 -e PGID=100 -v /mnt/cache/appdata/onedrive:/config -v /mnt/user/backup/cloud/odrive:/documents oznu/onedrive
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  # gdrive:
+  #   container_name: gdrive
+  #   image: paulwoelfel/grive2
+  #   restart: unless-stopped
+  #   volumes:
+  #   - /mnt/user/media/virtmachines/juan_documents/cloud/gdrive:/drive
+  #   environment:
+  #   - PGID=100
+  #   - PUID=99
+  #   stdin_open: true
+  #   tty: true
+#docker run --rm -itv --name=gdrive -e PUID=99 -e PGID=100 -v /mnt/user/backup/cloud/gdrive:/drive paulwoelfel/grive2 -a
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  openvpn:
+    container_name: openvpn
+    image: linuxserver/openvpn-as:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: bridge
+    # privileged: true
+    cap_add:
+    - NET_ADMIN
+    volumes:
+    - /mnt/cache/appdata/openvpn:/config
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "943:943/tcp"
+    - "9443:9443/tcp"
+    - "1194:1194/udp"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  resilio: #https://hub.docker.com/r/resilio/sync/
+    container_name: resilio
+    image: resilio/sync
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/resilio:/mnt/sync
+    - /mnt/user:/mnt/mounted_folders/data
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "8898:8888"
+    - "55555:55555"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  radarr:
+    container_name: radarr
+    image: linuxserver/radarr
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/radarr:/config
+    - /mnt/user/downloads:/downloads
+    - /mnt/user/media/movies:/movies:rw
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "7878:7878"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  sonarr:
+    container_name: sonarr
+    image: linuxserver/sonarr
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/sonarr:/config
+    - /mnt/user/downloads:/downloads
+    - /mnt/user/media/tvshows:/tv
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    - network=container:pia
+    ports:
+    - "8989:8989"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  jackett:
+    container_name: jackett
+    image: linuxserver/jackett
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/jackett:/config
+    - /mnt/user/downloads:/downloads
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "9117:9117"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  lidarr:
+    container_name: lidarr
+    image: linuxserver/lidarr
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/lidarr:/config
+    - /mnt/user/downloads/complete:/downloads
+    - /mnt/user/media/music:/music:rw
+    - /etc/localtime:/etc/localtime:ro
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "8686:8686"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  tasui:
+    container_name: tasui
+    image:  iotreboot/tasui:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    # volumes:
+    # - /mnt/cache/appdata/tasui:/opt
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "1285:80"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  tasmobackup:
+    container_name: tasmobackup
+    image: danmed/tasmobackupv1
+    restart: unless-stopped
+    hostname: UNRAID
+    volumes:
+    - /mnt/cache/appdata/tasmobackup:/var/www/html/data
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    - DBTYPE=sqlite
+    - DBNAME=data/tasmobackup
+    ports:
+    - "8259:80"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  virtmanager: #https://github.com/oznu/docker-onedrive-sync # https://github.com/skilion/onedrive
+    container_name: virtmanager
+    image: fanningert/docker-virtmanager
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: bridge
+    volumes:
+    - /dev/urandom:/dev/urandom
+    environment:
+    - DISPLAY_WIDTH=1024
+    - DISPLAY_HEIGHT=768
+    - LANG=en_GB.UTF-8
+    - TZ=Asia/Dubai
+    - PGID=100
+    - PUID=99
+    ports:
+    - "8088:8080"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  unraidapi: #https://github.com/ElectricBrainUK/UnraidAPI > https://github.com/ElectricBrainUK/UnraidAPI/wiki/Lovelace-Config
+    container_name: unraidapi
+    image: electricbrainuk/unraidapi:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: bridge
+    volumes:
+    - /mnt/cache/appdata/unraidapi:/app/config
+    environment:
+    - MQTTBroker=192.168.1.100
+    - MQTTPort=1883
+    - MQTTUser=user
+    - MQTTPass=${MYPASSWORD}
+    - MQTTBaseTopic=homeassistant #unraid
+    - MQTTRefreshRate=20
+    - MQTTCacheTime=10
+    - KeyStorage=config
+    - TZ=Asia/Dubai
+    - PGID=100
+    - PUID=99
+    ports:
+    - "3005:80"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    # networks:
+    #   mynet:
+    #     ipv4_address: 172.10.0.15    # set up static ip, not compatible with network_mode: bridge
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  cloudflare: #https://github.com/oznu/docker-cloudflare-ddns
+    container_name: cloudflare
+    image: oznu/cloudflare-ddns:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: bridge
+    environment:
+    - API_KEY=
+    - ZONE=yourdomain.com
+    - PROXIED=true
+    - TZ=Asia/Dubai
+    - PGID=100
+    - PUID=99
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  nginx:
+    container_name: nginx
+    image: linuxserver/nginx
+    restart: unless-stopped
+    hostname: UNRAID
+    # network_mode: bridge
+    volumes:
+    - /mnt/cache/appdata/nginx:/config
+    environment:
+    - TZ=Asia/Dubai
+    - PGID=100
+    - PUID=99
+    ports:
+    - 180:80
+    - 1443:443
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+    networks:
+      mynet:
+        ipv4_address: 172.10.0.10    # set up static ip to prevent HA blocking
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  fail2ban: #https://github.com/crazy-max/docker-fail2ban
+    container_name: fail2ban
+    image: crazymax/fail2ban:latest
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: host
+    cap_add:
+    - NET_ADMIN
+    - NET_RAW
+    volumes:
+    - /mnt/cache/appdata/fail2ban:/data
+    - /var/log:/var/log:ro
+    - /mnt/cache/appdata/homeassistant/home-assistant.log:/home/home-assistant.log # https://www.home-assistant.io/cookbook/fail2ban/ => to unban https://github.com/linuxserver/docker-letsencrypt docker exec -it letsencrypt fail2ban-client set ha unbanip 192.168.1.1 => fail2ban-client status ha
+    environment:
+    - TZ=Asia/Dubai
+    - PGID=100
+    - PUID=99
+    - F2B_LOG_TARGET=/data/log/fail2ban.log #STDOUT
+    - F2B_LOG_LEVEL=INFO
+    - F2B_DB_PURGE_AGE=1d
+    - F2B_IPTABLES_CHAIN=DOCKER-USER
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+    # env_file:
+    # - "./fail2ban.env"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  jellyfin:
+    container_name: jellyfin
+    image: linuxserver/jellyfin
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: bridge
+    volumes:
+    - /mnt/cache/appdata/jellyfin:/config
+    - /mnt/user/media:/data
+    - /tmp/jellyfin:/transcode
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    # - UMASK=000
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 256M
+    ports:
+    - "8096:8096"
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  apprise:
+    container_name: apprise
+    image: caronc/apprise
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: bridge
+    volumes:
+    - /mnt/cache/appdata/apprise:/config
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - "8001:8000"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  debian:
+    container_name: debian
+    image: ich777/debian-buster
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: bridge
+    hostname: UNRAID
+    shm_size: '2g'
+    volumes:
+    - /mnt/cache/appdata/debian:/debian
+    - /mnt/cache/appdata/debian/scripts/user.sh:/opt/scripts/user.sh
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    - CUSTOM_RES_W=2500 #1800
+    - CUSTOM_RES_H=950 #1000
+    - DATA_PERM=770
+    - USER_LOCALES=en_GB.UTF-8 UTF-8
+    - UMASK=000
+    - ROOT_PWD=1234 #${MYPASSWORD}
+    - DEBIAN_PWD=1234
+    - HOST_OS=UNRAID
+    - DEV=
+    ports:
+    - "2580:8080"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+  webthings:
+    container_name: webthings
+    image:  mozillaiot/gateway
+    restart: unless-stopped
+    hostname: UNRAID
+    network_mode: bridge
+    volumes:
+    - /mnt/cache/appdata/webthings:/home/node/.mozilla-iot
+    environment:
+    - PGID=100
+    - PUID=99
+    - TZ=Asia/Dubai
+    ports:
+    - 2680:8080
+    - 4443:4443
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512m
+    #     reservations:
+    #       memory: 256M
+    labels:
+    - "com.centurylinklabs.watchtower.enable=true"
+    logging:
+      options:
+        max-size: "1m"
+        max-file: "10"
+
+
+
+
+
+
+
+
+
+
+
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+# NO AUTO START
+# 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   esphome:
+#     container_name: esphome
+#     image: esphome/esphome
+#     restart: unless-stopped
+#     privileged: true
+#     volumes:
+#     - /mnt/cache/appdata/esphome:/config
+#     - /etc/localtime:/etc/localtime:ro
+#     environment:
+#     - PGID=100
+#     - PUID=99
+#     - TZ=Asia/Dubai
+#     # devices:
+#     # - /dev/ttyUSB0:/dev/ttyUSB0
+#     ports:
+#     - "6123:6123"
+#     - "6052:6052"
+#     # mem_limit: 512m #1G
+#     # mem_reservation: 256m
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   guacamole: #https://hub.docker.com/r/oznu/guacamole/
+#     container_name: guacamole
+#     image: jasonbean/guacamole #oznu/guacamole
+#     restart: unless-stopped
+#     network_mode: bridge
+#     volumes:
+#     - /mnt/cache/appdata/guacamole:/config
+#     environment:
+#     - OPT_MYSQL=Y
+#     - OPT_MYSQL_EXTENSION=N
+#     - OPT_SQLSERVER=N
+#     - OPT_LDAP=N
+#     - OPT_DUO=N
+#     - OPT_CAS=N
+#     - OPT_TOTP=N
+#     - OPT_QUICKCONNECT=N
+#     # mem_limit: 1G
+#     # mem_reservation: 512m
+#     ports:
+#     - "1980:8080"
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   firefox: #https://github.com/jlesage/docker-firefox
+#     container_name: firefox
+#     image: jlesage/firefox
+#     restart: unless-stopped
+#     # network_mode: "service:pia"
+#     shm_size: '2g'
+#     volumes:
+#     - /mnt/cache/appdata/firefox:/config:rw
+#     ports: # mapping port has to go through pia/socat, piercing vpn
+#     - "5800:5800"
+#     # mem_limit: 1G
+#     # mem_reservation: 512m
+#     cpu_percent: 10
+#     environment:
+#     - PGID=100
+#     - PUID=99
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   wetty: #dockerized terminal access https://hub.docker.com/r/svenihoney/wetty
+#     container_name: wetty
+#     image: svenihoney/wetty:latest
+#     restart: unless-stopped
+#     hostname: UNRAID
+#     environment:
+#     - PGID=100
+#     - PUID=99
+#     - REMOTE_SSH_SERVER=192.168.1.100
+#     - REMOTE_SSH_PORT=22
+#     - REMOTE_SSH_USER=root
+#     ports:
+#     - "3100:3000"
+#     # mem_limit: 512m #1G
+#     # mem_reservation: 256m
+#     networks:
+#       mynet:
+#         ipv4_address: 172.10.0.15
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   booksonic:
+#     container_name: booksonic
+#     image: linuxserver/booksonic:latest #amd64-1.1.Release-ls46
+#     restart: unless-stopped
+#     volumes:
+#     - /mnt/cache/appdata/booksonic:/config
+#     - /mnt/user/media/books:/books
+#     - /mnt/user/media/podcasts:/podcasts
+#     # - /mnt/user/media/media:/media
+#     environment:
+#     - PGID=100
+#     - PUID=99
+#     - TZ=Asia/Dubai
+#     ports:
+#     - "4040:4040"
+#     # mem_limit: 1G
+#     # mem_reservation: 512m
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   syncthing:
+#     container_name: syncthing
+#     image: syncthing/syncthing
+#     restart: unless-stopped
+#     volumes:
+#     - /mnt/cache/appdata/syncthing:/var/syncthing/config
+#     - /mnt/user/backup/syncthing:/var/syncthing
+#     environment:
+#     - PGID=100
+#     - PUID=99
+#     ports:
+#     - "8384:8384"
+#     - "22000:22000"
+#     - "21027:21027/udp"
+#     # mem_limit: 512m #1G
+#     # mem_reservation: 256m
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   nodered:
+#     container_name: nodered
+#     image: nodered/node-red
+#     restart: unless-stopped
+#     network_mode: host
+#     privileged: true
+#     volumes:
+#     - /mnt/cache/appdata/nodered:/data
+#     environment:
+#     - PGID=100
+#     - PUID=99
+#     - TZ=Asia/Dubai
+#     # ports:
+#     # - "1880:1880"
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   hapanel:
+#     container_name: hapanel
+#     image: timmo001/home-panel
+#     restart: unless-stopped
+#     volumes:
+#     - /mnt/cache/appdata/hapanel:/data
+#     environment:
+#     - PGID=100
+#     - PUID=99
+#     - TZ=Asia/Dubai
+#     ports:
+#     - "8234:8234"
+#     # mem_limit: 512m #1G
+#     # mem_reservation: 256m
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   zigbee2mqtt: # https://www.zigbee2mqtt.io/information/docker.html
+#     container_name: zigbee2mqtt
+#     image:  koenkk/zigbee2mqtt:latest #1.6.0
+#     restart: unless-stopped
+#     network_mode: host
+#     privileged: true
+#     volumes:
+#     - /mnt/cache/appdata/zigbee2mqtt/data:/app/data
+#     - /run/udev:/run/udev:ro
+#     # - /mnt/cache/appdata/zigbee2mqtt/homeassistant.js:/app/lib/extension/homeassistant.js
+#     # - /mnt/cache/appdata/zigbee2mqtt/zigbee-herdsman-converters:/app/node_modules/zigbee-shepherd-converters
+#     environment:
+#     - PGID=100
+#     - PUID=99
+#     - TZ=Asia/Dubai
+#     devices:
+#     - /dev/ttyACM0:/dev/ttyACM0 # to check usb position > ls -ltr /dev/tty*|tail -n 1
+#     # mem_limit: 512m #1G
+#     # mem_reservation: 256m
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   onvif2mqtt:
+#     container_name: onvif2mqtt
+#     image: dfarkov/onvif2mqtt:latest
+#     restart: unless-stopped
+#     volumes:
+#     - /mnt/cache/appdata/onvif2mqtt:/config
+#     environment:
+#     - PGID=100
+#     - PUID=99
+#     - TZ=Asia/Dubai
+#     # mem_limit: 512m #1G
+#     # mem_reservation: 256m
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#   iobroker: #
+#     container_name: iobroker
+#     image: buanet/iobroker:latest #iobroker/iobroker
+#     restart: unless-stopped
+#     network_mode: bridge
+#     volumes:
+#     - /mnt/cache/appdata/iobroker:/opt/iobroker
+#     environment:
+#     - TZ=Asia/Dubai
+#     - PGID=100
+#     - PUID=99
+#     ports:
+#     - "8082:8081"
+#     labels:
+#     - "com.centurylinklabs.watchtower.enable=true"
+
+# # 00 ##################################################################################################################################################################################################################################################################################################################################################################################################################################################
+#  configurator:
+#    container_name: configurator
+#    image: causticlab/hass-configurator-docker
+#    restart: unless-stopped
+#    volumes:
+#    - /srv/docker/homeassistant:/homeassistant
+#    - /srv/docker/configurator:/config
+##    - /etc/letsencrypt:/certs:ro
+#    ports:
+#    - "3218:3218"
+
+#######################################################################################################################################################################################################################################################################################################################################################################################################################################################
+# NETWORK CREATED TO ASSISGN STATIC IPS TO CONTAINERS #################################################################################################################################################################################################################################################################################################################################################################################################
+networks:
+  mynet:  # set up static ip to prevent HA blocking
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.10.0.0/24 #        gateway: 172.10.0.1
+  myvlan:  # set up for pihole
+    driver: macvlan
+    driver_opts:
+      parent: br0
+    ipam:
+      config:
+      - subnet: 192.168.1.0/24 #        gateway: 192.168.1.1
