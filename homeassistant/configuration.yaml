@@ -16,14 +16,34 @@ google_assistant:
   report_state: true
   expose_by_default: false
   entity_config:
-    switch.mqtt_switch_1:
-      name: switch 1
+    switch.mqtt_bedroom_table_light:
+      name: свет над столом
+      aliases:
+        - свет в спальне
       expose: true
-      room: bedroom
-    switch.mqtt_switch_2:
-      name: выключатель 2
+      room: спальня
+    switch.mqtt_bedroom_bed_light:
+      name: свет над кроватью
+      aliases:
+        - свет в спальне
       expose: true
-      room: bedroom
+      room: спальня
+    switch.mqtt_kitchen_light:
+      name: свет на кухне
+      expose: true
+      room: кухня
+    switch.mqtt_entrance_light:
+      name: свет в прихожей
+      expose: true
+      room: прихожая
+    switch.mqtt_bathroom_light:
+      name: свет в ванной
+      expose: true
+      room: ванная
+    switch.mqtt_bathroom_fan:
+      name: вытяжка в ванной
+      expose: true
+      room: ванная
 
 mqtt:
   broker: localhost
@@ -36,7 +56,7 @@ mqtt:
 
 switch 1:
   - platform: mqtt
-    name: "MQTT Switch 1"
+    name: "MQTT Bedroom bed light"
     state_topic: "/house/switchConfirm1/"
     command_topic: "/house/switch1/"
     payload_on: "1"
@@ -46,7 +66,7 @@ switch 1:
 
 switch 2:
   - platform: mqtt
-    name: "MQTT Switch 2"
+    name: "MQTT Bedroom table light"
     state_topic: "/house/switchConfirm2/"
     command_topic: "/house/switch2/"
     payload_on: "1"
@@ -56,7 +76,7 @@ switch 2:
 
 switch 3:
   - platform: mqtt
-    name: "MQTT Switch 3"
+    name: "MQTT Kitchen light"
     state_topic: "/house/switchConfirm3/"
     command_topic: "/house/switch3/"
     payload_on: "1"
@@ -66,7 +86,7 @@ switch 3:
 
 switch 4:
   - platform: mqtt
-    name: "MQTT Switch 4"
+    name: "MQTT Entrance light"
     state_topic: "/house/switchConfirm4/"
     command_topic: "/house/switch4/"
     payload_on: "1"
@@ -76,7 +96,7 @@ switch 4:
 
 switch 5:
   - platform: mqtt
-    name: "MQTT Switch 5"
+    name: "MQTT Bathroom light"
     state_topic: "/house/switchConfirm5/"
     command_topic: "/house/switch5/"
     payload_on: "1"
@@ -86,7 +106,7 @@ switch 5:
 
 switch 6:
   - platform: mqtt
-    name: "MQTT Switch 6"
+    name: "MQTT Bathroom fan"
     state_topic: "/house/switchConfirm6/"
     command_topic: "/house/switch6/"
     payload_on: "1"
